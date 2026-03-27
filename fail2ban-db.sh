@@ -24,8 +24,19 @@ while true; do
   echo -e "$IPs" | awk '{print NR, $1}' | while read -r num ip; do
     ban_time=$(grep "$ip" /var/log/fail2ban.log | tail -1 | awk '{print $1 " " $2}' | xargs -I {} date -d {} +%s)
     current_time=$(date +%s)
-    time_left=$(( 3600 - (current_time - ban_time) ))
-    mins=$(( (time_left + 59) / 60 ))
+    time_left=$(( 84600 - (current_time - ban_time) ))
+    hours=$(( time_left / 3600 ))  # Calculate hours from seconds
+    mins=$(( (time_left % 3600) / 60 ))  # Calculate remaining minutes
+    
+    # Adjust for negative time
+    if ((time_left < 0)); then
+      hours=$(( hours + 24 ))
+      mins=$(( mins + 60 ))
+    fi
+    
+    # Ensure hours and minutes are within valid ranges
+    hours=$(( hours % 24 ))
+    mins=$(( mins % 60 ))
     [ $mins -eq 0 ] && mins=1
     printf " │ %2d  │     %-15s  │%4d mins  │\n" "$num" "$ip" "$mins"
     
