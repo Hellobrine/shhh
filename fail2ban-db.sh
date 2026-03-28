@@ -20,30 +20,26 @@ while true; do
   echo -e " │ No. │          IP          │    Unban In    │"
   echo -e " ├─────┼──────────────────────┼────────────────┤"
 
-  # Parse each IP and look up its ban time in the log file
-  echo -e "$IPs" | awk '{print NR, $1}' | while read -r num ip; do
-    ban_time=$(grep "$ip" /var/log/fail2ban.log | tail -1 | awk '{print $1 " " $2}' | xargs -I {} date -d {} +%s)
-    current_time=$(date +%s)
-    time_left=$(( 84600 - (current_time - ban_time) ))
+  # Parse each IP and look up its ban time using fail2ban-client
+  counter=0
+  sudo fail2ban-client get sshd banip --with-time | while read -r ip ban_start plus duration equals unban_time; do
+    # Skip empty lines or header lines
+    [[ -z "$ip" || "$ip" == "No"* ]] && continue
     
-    # Adjust for negative time (add 24 hours worth of seconds)
-    if ((time_left < 0)); then
-      time_left=$(( time_left + 86400 ))
-    fi
+    counter=$((counter + 1))
     
-    # Calculate days, hours, and minutes
-    days=$(( time_left / 86400 ))
-    hours=$(( (time_left % 86400) / 3600 ))
-    mins=$(( (time_left % 3600) / 60 ))
+    # Parse duration (in seconds) and convert to days, hours, minutes
+    days=$(( duration / 86400 ))
+    hours=$(( (duration % 86400) / 3600 ))
+    mins=$(( (duration % 3600) / 60 ))
     
     # Build the time left string - always show days, hours, and minutes with fixed width
     time_str=$(printf "%dd %dh %dm" "$days" "$hours" "$mins")
     
-    printf " │ %2d  │     %-15s  │  %-12s  │\n" "$num" "$ip" "$time_str"
+    printf " │ %2d  │     %-15s  │  %-12s  │\n" "$counter" "$ip" "$time_str"
     
   done
 echo " └─────┴──────────────────────┴────────────────┘"  # Line below each IP
-  counter=0
   server_info=""
 
   for i in {59..0}; do
