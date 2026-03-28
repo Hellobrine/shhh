@@ -27,19 +27,35 @@ while true; do
     [[ -z "$line" ]] && continue
 
     # Parse the line: IP    DATE TIME + DURATION = DATE TIME
-    # Extract IP (first field) and duration (field after +)
+    # Example: 92.118.39.92    2026-03-28 18:27:36 + 7200 = 2026-03-28 20:27:36
     ip=$(echo "$line" | awk '{print $1}')
-    duration=$(echo "$line" | awk -F' \\+ ' '{print $2}' | awk -F' = ' '{print $1}')
-
+    
+    # Extract the unban datetime (everything after "= ")
+    unban_datetime=$(echo "$line" | sed 's/.*= //')
+    
     # Skip if we couldn't extract valid data
-    [[ -z "$ip" || -z "$duration" || ! "$duration" =~ ^[0-9]+$ ]] && continue
+    [[ -z "$ip" || -z "$unban_datetime" ]] && continue
 
     counter=$((counter + 1))
 
-    # Parse duration (in seconds) and convert to days, hours, minutes
-    days=$(( duration / 86400 ))
-    hours=$(( (duration % 86400) / 3600 ))
-    mins=$(( (duration % 3600) / 60 ))
+    # Convert unban datetime to epoch seconds
+    unban_epoch=$(date -d "$unban_datetime" +%s 2>/dev/null)
+    
+    # Get current epoch seconds
+    current_epoch=$(date +%s)
+    
+    # Calculate remaining seconds
+    remaining_seconds=$((unban_epoch - current_epoch))
+    
+    # If already expired, show 0
+    if (( remaining_seconds < 0 )); then
+      remaining_seconds=0
+    fi
+    
+    # Parse remaining duration and convert to days, hours, minutes
+    days=$(( remaining_seconds / 86400 ))
+    hours=$(( (remaining_seconds % 86400) / 3600 ))
+    mins=$(( (remaining_seconds % 3600) / 60 ))
 
     # Build the time left string - always show days, hours, and minutes with fixed width
     time_str=$(printf "%dd %dh %dm" "$days" "$hours" "$mins")
