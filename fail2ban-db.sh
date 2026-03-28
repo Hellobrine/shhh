@@ -48,13 +48,31 @@ while true; do
 
   done < <(sudo fail2ban-client get sshd banip --with-time)
 
-  # Calculate total table lines (header lines + data rows + footer)
-  total_table_lines=$((counter + 4))  # 3 header lines + counter rows + 1 footer
+  echo " └─────┴──────────────────────┴────────────────┘"
   
-  echo " └─────┴──────────────────────┴────────────────┘"  # Line below each IP
-  server_info=""
+  # Initial display of server info and time
+  cpu_temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)
+  cpu_load=$(uptime | awk -F 'load average: ' '{print $2}')
+  disk_usage=$(df -h / | awk 'NR==2 {print $5}')
+  memory_usage=$(free -m | awk 'NR==2 {print $3 "/" $2 "MB"}')
+  logged_users=$(who | awk '{print $1}' | sort -u | wc -l)
+  logged_users_list=$(who | awk '{print $1}' | sort | uniq | tr '\n' ', ' | sed 's/,$//')
+  cpu_temp_c=$(awk -v temp="$cpu_temp" 'BEGIN{printf "%.1f", temp / 1000}')
 
+  server_info="\e[1;32m\n - Server Info:\n - CPU Load : $cpu_load\n - CPU Temp : $cpu_temp_c °C\n - Disk Usage : $disk_usage\n - Memory Usage : $memory_usage\n - Count of unique logged-in users : $logged_users\n - Logged in as : $logged_users_list\n\e[0m"
+
+  echo -e "\e[1;32m  Current Time: $(date '+%H:%M:%S')\e[0m"
+  echo " ──────────────────────────────────────────"
+  echo -e "$server_info"
+  echo " ──────────────────────────────────────────"
+
+  # Update loop - only refresh time and server info
   for i in {59..0}; do
+    sleep 1
+    
+    # Move cursor up 12 lines to the "Current Time" line
+    echo -ne "\\033[12A"
+    
     if ((i % 10 == 0 || i == 59)); then
       cpu_temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)
       cpu_load=$(uptime | awk -F 'load average: ' '{print $2}')
@@ -64,17 +82,14 @@ while true; do
       logged_users_list=$(who | awk '{print $1}' | sort | uniq | tr '\n' ', ' | sed 's/,$//')
       cpu_temp_c=$(awk -v temp="$cpu_temp" 'BEGIN{printf "%.1f", temp / 1000}')
 
-
       server_info="\e[1;32m\n - Server Info:\n - CPU Load : $cpu_load\n - CPU Temp : $cpu_temp_c °C\n - Disk Usage : $disk_usage\n - Memory Usage : $memory_usage\n - Count of unique logged-in users : $logged_users\n - Logged in as : $logged_users_list\n\e[0m"
     fi
 
+    # Clear from cursor to end and reprint
+    echo -ne "\\033[J"
     echo -e "\e[1;32m  Current Time: $(date '+%H:%M:%S')\e[0m"
     echo " ──────────────────────────────────────────"
     echo -e "$server_info"
     echo " ──────────────────────────────────────────"
-    sleep 1
-
-    # Move cursor up to just after the table footer and clear everything below
-    echo -ne "\033[${total_table_lines}A\033[J"
   done
 done
