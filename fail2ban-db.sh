@@ -22,9 +22,17 @@ while true; do
 
   # Parse each IP and look up its ban time using fail2ban-client
   counter=0
-  while read -r ip ban_start plus duration equals unban_time; do
-    # Skip empty lines or header lines
-    [[ -z "$ip" || "$ip" == "No"* ]] && continue
+  while IFS= read -r line; do
+    # Skip empty lines
+    [[ -z "$line" ]] && continue
+    
+    # Parse the line: IP    DATE TIME + DURATION = DATE TIME
+    # Extract IP (first field) and duration (field after +)
+    ip=$(echo "$line" | awk '{print $1}')
+    duration=$(echo "$line" | awk -F' \\+ ' '{print $2}' | awk -F' = ' '{print $1}')
+    
+    # Skip if we couldn't extract valid data
+    [[ -z "$ip" || -z "$duration" || ! "$duration" =~ ^[0-9]+$ ]] && continue
     
     counter=$((counter + 1))
     
