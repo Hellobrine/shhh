@@ -36,16 +36,8 @@ while true; do
     hours=$(( (time_left % 86400) / 3600 ))
     mins=$(( (time_left % 3600) / 60 ))
     
-    # Build the time left string
-    time_str=""
-    if [ $days -gt 0 ]; then
-      time_str="${days}d ${hours}h ${mins}m"
-    elif [ $hours -gt 0 ]; then
-      time_str="${hours}h ${mins}m"
-    else
-      [ $mins -eq 0 ] && mins=1
-      time_str="${mins}m"
-    fi
+    # Build the time left string - always show days, hours, and minutes
+    time_str="${days}d ${hours}h ${mins}m"
     
     printf " │ %2d  │     %-15s  │%12s  │\n" "$num" "$ip" "$time_str"
     
