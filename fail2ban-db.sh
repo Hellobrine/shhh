@@ -22,7 +22,7 @@ while true; do
 
   # Parse each IP and look up its ban time using fail2ban-client
   counter=0
-  sudo fail2ban-client get sshd banip --with-time | while read -r ip ban_start plus duration equals unban_time; do
+  while read -r ip ban_start plus duration equals unban_time; do
     # Skip empty lines or header lines
     [[ -z "$ip" || "$ip" == "No"* ]] && continue
     
@@ -38,8 +38,9 @@ while true; do
     
     printf " │ %2d  │     %-15s  │  %-12s  │\n" "$counter" "$ip" "$time_str"
     
-  done
-echo " └─────┴──────────────────────┴────────────────┘"  # Line below each IP
+  done < <(sudo fail2ban-client get sshd banip --with-time)
+  
+  echo " └─────┴──────────────────────┴────────────────┘"  # Line below each IP
   server_info=""
 
   for i in {59..0}; do
