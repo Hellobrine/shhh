@@ -16,9 +16,9 @@ while true; do
   
 
   # Display table headers
-  echo -e " ┌─────┬──────────────────────┬───────────┐"
-  echo -e " │ No. │          IP          │  Unban In │"
-  echo -e " ├─────┼──────────────────────┼───────────┤"
+  echo -e " ┌─────┬──────────────────────┬──────────────┐"
+  echo -e " │ No. │          IP          │   Unban In   │"
+  echo -e " ├─────┼──────────────────────┼──────────────┤"
 
   # Parse each IP and look up its ban time in the log file
   echo -e "$IPs" | awk '{print NR, $1}' | while read -r num ip; do
@@ -39,10 +39,10 @@ while true; do
     # Build the time left string - always show days, hours, and minutes
     time_str="${days}d ${hours}h ${mins}m"
     
-    printf " │ %2d  │     %-15s  │%12s  │\n" "$num" "$ip" "$time_str"
+    printf " │ %2d  │     %-15s  │  %10s  │\n" "$num" "$ip" "$time_str"
     
   done
-echo " └─────┴──────────────────────┴───────────┘"  # Line below each IP
+echo " └─────┴──────────────────────┴──────────────┘"  # Line below each IP
   counter=0
   server_info=""
 
