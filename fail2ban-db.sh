@@ -13,7 +13,7 @@ while true; do
   # Display Currently Banned IPs and Total Banned to Date
   echo -e "\e[1;32m   Currently Banned IPs: $current_count\e[0m"
   echo -e "\e[1;32m   Total Banned to Date: $total_count\n\e[0m"
-  
+
 
   # Display table headers
   echo -e " ┌─────┬──────────────────────┬────────────────┐"
@@ -25,34 +25,37 @@ while true; do
   while IFS= read -r line; do
     # Skip empty lines
     [[ -z "$line" ]] && continue
-    
+
     # Parse the line: IP    DATE TIME + DURATION = DATE TIME
     # Extract IP (first field) and duration (field after +)
     ip=$(echo "$line" | awk '{print $1}')
     duration=$(echo "$line" | awk -F' \\+ ' '{print $2}' | awk -F' = ' '{print $1}')
-    
+
     # Skip if we couldn't extract valid data
     [[ -z "$ip" || -z "$duration" || ! "$duration" =~ ^[0-9]+$ ]] && continue
-    
+
     counter=$((counter + 1))
-    
+
     # Parse duration (in seconds) and convert to days, hours, minutes
     days=$(( duration / 86400 ))
     hours=$(( (duration % 86400) / 3600 ))
     mins=$(( (duration % 3600) / 60 ))
-    
+
     # Build the time left string - always show days, hours, and minutes with fixed width
     time_str=$(printf "%dd %dh %dm" "$days" "$hours" "$mins")
-    
+
     printf " │ %2d  │     %-15s  │  %-12s  │\n" "$counter" "$ip" "$time_str"
-    
+
   done < <(sudo fail2ban-client get sshd banip --with-time)
+
+  # Calculate total table lines (header lines + data rows + footer)
+  total_table_lines=$((counter + 4))  # 3 header lines + counter rows + 1 footer
   
   echo " └─────┴──────────────────────┴────────────────┘"  # Line below each IP
   server_info=""
 
   for i in {59..0}; do
-    if ((counter % 10 == 0)); then
+    if ((i % 10 == 0 || i == 59)); then
       cpu_temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)
       cpu_load=$(uptime | awk -F 'load average: ' '{print $2}')
       disk_usage=$(df -h / | awk 'NR==2 {print $5}')
@@ -69,10 +72,9 @@ while true; do
     echo " ──────────────────────────────────────────"
     echo -e "$server_info"
     echo " ──────────────────────────────────────────"
-    counter=$((counter + 1))
     sleep 1
 
-    # Clear the lines for server info and time, but no more than that
-    echo -ne "\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A\033[2K\033[A"
+    # Move cursor up to just after the table footer and clear everything below
+    echo -ne "\033[${total_table_lines}A\033[J"
   done
 done
